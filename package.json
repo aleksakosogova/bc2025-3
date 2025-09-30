@@ -1,0 +1,14 @@
+{
+  "name": "bc2025-3",
+  "version": "1.0.0",
+  "description": "Laboratory work #3 - JavaScript programming practice with built-in and third-party modules",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.0.0"
+  }
+}
