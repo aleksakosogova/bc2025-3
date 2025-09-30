@@ -1,92 +1,56 @@
-const { Command } = require('commander');
+#!/usr/bin/env node
 const fs = require('fs');
+const { program } = require('commander');
 
-const program = new Command();
-
-// Налаштування програми
+// Визначаємо параметри, але не робимо їх обовʼязковими
 program
-  .name('car-data-processor')
-  .description('CLI program for processing car data from mtcars.json')
-  .version('1.0.0');
+  .option('-i, --input <file>', 'input JSON file')
+  .option('-o, --output <file>', 'output file')
+  .option('-d, --display', 'display result in console')
+  .option('-c, --cylinders', 'show number of cylinders')
+  .option('-m, --mpg <value>', 'show cars with mpg below value');
 
-// Загальні параметри
-program
-  .requiredOption('-i, --input <path>', 'path to input JSON file')
-  .option('-o, --output <path>', 'path to output file')
-  .option('-d, --display', 'display results in console');
-
-// Додаткові параметри для варіанту 5
-program
-  .option('-c, --cylinders', 'display number of cylinders')
-  .option('-m, --mpg <value>', 'display only cars with fuel economy below specified value', parseFloat);
-
-program.parse();
-
+program.parse(process.argv);
 const options = program.opts();
 
-// Перевірка обов'язкового параметра
+// Перевірка обовʼязкового параметра вручну
 if (!options.input) {
   console.error('Please, specify input file');
   process.exit(1);
 }
 
-// Перевірка існування файлу
-if (!fs.existsSync(options.input)) {
+// Читання файлу
+let data;
+try {
+  const raw = fs.readFileSync(options.input, 'utf8');
+  data = raw.split('\n').filter(line => line.trim()).map(line => JSON.parse(line));
+} catch (err) {
   console.error('Cannot find input file');
   process.exit(1);
 }
 
-try {
-  // Читання файлу
-  const data = fs.readFileSync(options.input, 'utf8');
-  
-  // Парсинг JSON - кожен рядок окремий JSON об'єкт
-  const lines = data.trim().split('\n');
-  let cars = lines.map(line => JSON.parse(line));
+// Фільтрація за mpg
+if (options.mpg) {
+  const mpgValue = parseFloat(options.mpg);
+  data = data.filter(car => car.mpg < mpgValue);
+}
 
-  // Фільтрація за паливною економністю якщо задано параметр --mpg
-  if (options.mpg !== undefined) {
-    cars = cars.filter(car => car.mpg < options.mpg);
+// Підготовка результату для виводу
+const outputLines = data.map(car => {
+  let line = car.model;
+  if (options.cylinders) line += ` ${car.cyl}`;
+  if (options.mpg) line += ` ${car.mpg}`;
+  return line;
+}).join('\n');
+
+// Вивід у консоль
+if (options.display) console.log(outputLines);
+
+// Запис у файл
+if (options.output) {
+  try {
+    fs.writeFileSync(options.output, outputLines);
+  } catch (err) {
+    console.error('Error writing to file');
   }
-
-  // Формування результату
-  let results = cars.map(car => {
-    let result = car.model;
-    
-    // Додавання кількості циліндрів якщо задано параметр --cylinders
-    if (options.cylinders) {
-      result += ' ' + car.cyl;
-    }
-    
-    // Додавання паливної економності
-    result += ' ' + car.mpg;
-    
-    return result;
-  });
-
-  const output = results.join('\n');
-
-  // Виведення результатів
-  let shouldOutput = false;
-
-  // Запис у файл якщо задано параметр --output
-  if (options.output) {
-    fs.writeFileSync(options.output, output);
-    shouldOutput = true;
-  }
-
-  // Виведення в консоль якщо задано параметр --display
-  if (options.display) {
-    console.log(output);
-    shouldOutput = true;
-  }
-
-  // Якщо не задано жодного параметра виводу - не виводимо нічого
-  if (!shouldOutput && !options.output && !options.display) {
-    // Програма не виводить нічого
-  }
-
-} catch (error) {
-  console.error('Error processing file:', error.message);
-  process.exit(1);
 }
