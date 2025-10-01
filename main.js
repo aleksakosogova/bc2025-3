@@ -11,7 +11,7 @@ program
 
 // Загальні параметри
 program
-  .requiredOption('-i, --input <path>', 'path to input JSON file')
+  .option('-i, --input <path>', 'path to input JSON file')
   .option('-o, --output <path>', 'path to output file')
   .option('-d, --display', 'display results in console');
 
